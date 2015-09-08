@@ -1,0 +1,8 @@
+{
+	"port": 0,
+	"jwtSecret": "",
+	"auth": {
+		"server": "",
+		"port": 0
+	}
+}
