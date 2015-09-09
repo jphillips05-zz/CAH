@@ -4,7 +4,7 @@ app.controller('loginCtrl', ['$scope', '$location', 'authService', function($sco
 		username: 'jason@walterbrimleykitty.com',
 		password: 'Celie123' 
 	}
-	
+	console.log('11');
 	authService.logOut()
 	
 	$scope.login = function() {
