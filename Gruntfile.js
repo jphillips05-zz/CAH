@@ -43,6 +43,27 @@ module.exports = function(grunt) {
 					logConcurrentOutput: true
 				}
 			}
+		},
+		
+		jsbeautifier: {
+			"default": {
+				src: ['public/scripts/app/**/*.js', 'app/**/*.js'],
+				options: {
+					
+				}
+			},
+			"git-pre-commit": { 
+				src: ['public/scripts/app/**/*.js', 'app/**/*.js'],
+				options : {
+					mode:"VERIFY_ONLY"
+				}
+			}
+		},
+		
+		githooks: {
+			all: {
+				'pre-commit': 'clean'
+			}
 		}
 
     });
@@ -52,8 +73,11 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-nodemon');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-concurrent');
+	grunt.loadNpmTasks("grunt-jsbeautifier");
+	grunt.loadNpmTasks('grunt-githooks');
 	
 	
 	grunt.registerTask('default', ['concurrent']);
 	grunt.registerTask('build', ['concat', 'uglify']);
+	grunt.registerTask('clean', ['jsbeautifier', 'build']);
 };

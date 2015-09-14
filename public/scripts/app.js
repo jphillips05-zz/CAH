@@ -1,265 +1,279 @@
 var app = angular.module('cah', [
-	'ngRoute',
-	'LocalStorageModule'
+    'ngRoute',
+    'LocalStorageModule'
 ])
 
-.config(['$httpProvider', function ($httpProvider) {
+.config(['$httpProvider', function($httpProvider) {
     $httpProvider.interceptors.push('authInterceptorService');
 }])
 
-.run(['authService', function (authService) {
-	authService.fillAuthData();
-}]);;app.controller('homeCtrl', ['$scope', 'test', function($scope, test){
-	console.log('home');
-	
-	test.needAuth().then(function(data){
-		console.log(data);
-	});
-	
-}]);;app.controller('loginCtrl', ['$scope', '$location', 'authService', function($scope, $location, authService){
-	
-	$scope.user = {
-		username: 'jason@walterbrimleykitty.com',
-		password: 'Celie123' 
-	}
-	console.log('11');
-	authService.logOut()
-	
-	$scope.login = function() {
-		authService.login($scope.user).then(function(data){
-			$location.path('/');
-		});	
-	};
-}]);;app.config(['$routeProvider', function($routeProvider){
-	var cacheBustPrefix = Date.now();
-	$routeProvider
-		.when('/', {
-			templateUrl: '/scripts/app/home/index.html?cache-bust=' + cacheBustPrefix,
-			controller: 'homeCtrl',
-			caseInsensitiveMatch: true
-		})
-		.when('/login', {
-			templateUrl: '/scripts/app/login/index.html?cache-bust=' + cacheBustPrefix,
-			controller: 'loginCtrl',
-			caseInsensitiveMatch: true
-		});
-}]);;app.factory('authInterceptorService', ['$q', '$injector', '$location', 'localStorageService', function ($q, $injector, $location, localStorageService) {
+.run(['authService', function(authService) {
+    authService.fillAuthData();
+}]);
+;app.controller('homeCtrl', ['$scope', 'test', function($scope, test) {
+    console.log('home');
 
-  var authInterceptorServiceFactory = {};
-
-  var _request = function (config) {
-
-    config.headers = config.headers || {};
-
-    var authData = localStorageService.get('authorizationData');
-    if (authData) {
-      //config.headers.Authorization = 'Bearer ' + authData.token;
-      config.headers["x-access-token"] = authData.token; 
-    }
-
-    return config;
-  };
-
-  var _responseError = function (rejection) {
-    if (rejection.status === 401) {
-      var authService = $injector.get('authService');
-      var authData = localStorageService.get('authorizationData');
-
-      if (authData) {
-        if (authData.useRefreshTokens) {
-          $location.path('/refresh');
-          return $q.reject(rejection);
-        }
-      }
-      authService.logOut();
-      if ($location.path() != '/login') {
-        localStorageService.set('referrer', $location.path());
-      }
-      $location.path('/login');
-    }
-    return $q.reject(rejection);
-  };
-
-  authInterceptorServiceFactory.request = _request;
-  authInterceptorServiceFactory.responseError = _responseError;
-
-  return authInterceptorServiceFactory;
-}]);;app.factory('authService', ['$rootScope', '$http', '$q', 'localStorageService', function ($rootScope, $http, $q, localStorageService) {
-
-  var authServiceFactory = {};
-
-  var _authentication = {
-    isAuth: false,
-    userName: "",
-    useRefreshTokens: false,
-    userRoles: []
-  };
-
-  var _externalAuthData = {
-    provider: "",
-    userName: "",
-    externalAccessToken: ""
-  };
-
-  var _login = function (loginData) {
-
-    var data = "grant_type=password&username=" + loginData.username + "&password=" + loginData.password;
-
-    var deferred = $q.defer();
-
-    $http.post("/api/v1/login" , data, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }).success(function (response) {
-
-		localStorageService.set('authorizationData', { token: response.token });
-      
-      	_authentication.isAuth = true;
-      	_authentication.userName = loginData.userName;
-      	_authentication.useRefreshTokens = loginData.useRefreshTokens;
-
-      $rootScope.user = response;
-
-      deferred.resolve(response);
-
-    }).error(function (err, status) {
-      _logOut();
-      deferred.reject(err);
+    test.needAuth().then(function(data) {
+        console.log(data);
     });
 
-    return deferred.promise;
+}]);
+;app.controller('loginCtrl', ['$scope', '$location', 'authService', function($scope, $location, authService) {
 
-  };
-
-  var _logOut = function () {
-
-    localStorageService.remove('authorizationData');
-
-    _authentication.isAuth = false;
-    _authentication.userName = "";
-    _authentication.useRefreshTokens = false;
-
-  };
-
-  var _fillAuthData = function () {
-
-    var authData = localStorageService.get('authorizationData');
-    if (authData) {
-      _authentication.isAuth = true;
-      _authentication.userName = authData.userName;
-      _authentication.useRefreshTokens = authData.useRefreshTokens;
-      _authentication.userRoles = authData.userRoles;
+    $scope.user = {
+        username: 'jason@walterbrimleykitty.com',
+        password: 'Celie123'
     }
 
-  };
+    authService.logOut()
 
-  var _refreshToken = function () {
-    var deferred = $q.defer();
+    $scope.login = function() {
+        authService.login($scope.user).then(function(data) {
+            if (data && data.success) {
+                $location.path('/');
+            }
+        });
+    };
+}]);
+;app.config(['$routeProvider', function($routeProvider) {
+    var cacheBustPrefix = Date.now();
+    $routeProvider
+        .when('/', {
+            templateUrl: '/scripts/app/home/index.html?cache-bust=' + cacheBustPrefix,
+            controller: 'homeCtrl',
+            caseInsensitiveMatch: true
+        })
+        .when('/login', {
+            templateUrl: '/scripts/app/login/index.html?cache-bust=' + cacheBustPrefix,
+            controller: 'loginCtrl',
+            caseInsensitiveMatch: true
+        });
+}]);
+;app.factory('authInterceptorService', ['$q', '$injector', '$location', 'localStorageService', function($q, $injector, $location, localStorageService) {
 
-//     var authData = localStorageService.get('authorizationData');
-// 
-//     if (authData) {
-// 
-//       if (authData.useRefreshTokens) {
-// 
-//         var data = "grant_type=refresh_token&refresh_token=" + authData.refreshToken + "&client_id=" + ngAuthSettings.clientId;
-// 
-//         localStorageService.remove('authorizationData');
-// 
-//         $http.post(serviceBase + 'token', data, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }).success(function (response) {
-// 
-//           localStorageService.set('authorizationData', { token: response.access_token, userName: response.userName, refreshToken: response.refresh_token, useRefreshTokens: true });
-// 
-//           deferred.resolve(response);
-// 
-//         }).error(function (err, status) {
-//           _logOut();
-//           deferred.reject(err);
-//         });
-//       }
-//     }
+    var authInterceptorServiceFactory = {};
 
-    return deferred.promise;
-  };
+    var _request = function(config) {
 
-  var _obtainAccessToken = function (externalData) {
+        config.headers = config.headers || {};
 
-    var deferred = $q.defer();
+        var authData = localStorageService.get('authorizationData');
+        if (authData) {
+            //config.headers.Authorization = 'Bearer ' + authData.token;
+            config.headers["x-access-token"] = authData.token;
+        }
 
-//     $http.get(serviceBase + 'api/account/ObtainLocalAccessToken', { params: { provider: externalData.provider, externalAccessToken: externalData.externalAccessToken } }).success(function (response) {
-// 
-//       localStorageService.set('authorizationData', { token: response.access_token, userName: response.userName, refreshToken: "", useRefreshTokens: false });
-// 
-//       _authentication.isAuth = true;
-//       _authentication.userName = response.userName;
-//       _authentication.useRefreshTokens = false;
-// 
-//       deferred.resolve(response);
-// 
-//     }).error(function (err, status) {
-//       _logOut();
-//       deferred.reject(err);
-//     });
+        return config;
+    };
 
-    return deferred.promise;
+    var _responseError = function(rejection) {
+        if (rejection.status === 401) {
+            var authService = $injector.get('authService');
+            var authData = localStorageService.get('authorizationData');
 
-  };
+            if (authData) {
+                if (authData.useRefreshTokens) {
+                    $location.path('/refresh');
+                    return $q.reject(rejection);
+                }
+            }
+            authService.logOut();
+            if ($location.path() != '/login') {
+                localStorageService.set('referrer', $location.path());
+            }
+            $location.path('/login');
+        }
+        return $q.reject(rejection);
+    };
 
-  var _registerExternal = function (registerExternalData) {
+    authInterceptorServiceFactory.request = _request;
+    authInterceptorServiceFactory.responseError = _responseError;
 
-    var deferred = $q.defer();
+    return authInterceptorServiceFactory;
+}]);
+;app.factory('authService', ['$rootScope', '$http', '$q', 'localStorageService', function($rootScope, $http, $q, localStorageService) {
 
-//     $http.post(serviceBase + 'api/account/registerexternal', registerExternalData).success(function (response) {
-// 
-//       localStorageService.set('authorizationData', { token: response.access_token, userName: response.userName, refreshToken: "", useRefreshTokens: false });
-// 
-//       _authentication.isAuth = true;
-//       _authentication.userName = response.userName;
-//       _authentication.useRefreshTokens = false;
-// 
-//       $rootScope.userRoles = response.userRoles;
-// 
-//       deferred.resolve(response);
-// 
-//     }).error(function (err, status) {
-//       _logOut();
-//       deferred.reject(err);
-//     });
+    var authServiceFactory = {};
 
-    return deferred.promise;
+    var _authentication = {
+        isAuth: false,
+        userName: "",
+        useRefreshTokens: false,
+        userRoles: []
+    };
 
-  };
+    var _externalAuthData = {
+        provider: "",
+        userName: "",
+        externalAccessToken: ""
+    };
 
-  //authServiceFactory.saveRegistration = _saveRegistration;
-  authServiceFactory.login = _login;
-  authServiceFactory.logOut = _logOut;
-  authServiceFactory.fillAuthData = _fillAuthData;
-  authServiceFactory.authentication = _authentication;
-  authServiceFactory.refreshToken = _refreshToken;
+    var _login = function(loginData) {
 
-  authServiceFactory.obtainAccessToken = _obtainAccessToken;
-  authServiceFactory.externalAuthData = _externalAuthData;
-  authServiceFactory.registerExternal = _registerExternal;
+        var data = "grant_type=password&username=" + loginData.username + "&password=" + loginData.password;
 
-  return authServiceFactory;
-}]);;/**
+        var deferred = $q.defer();
+
+        $http.post("/api/login", data, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        }).success(function(response) {
+
+            localStorageService.set('authorizationData', {
+                token: response.token
+            });
+
+            _authentication.isAuth = true;
+            _authentication.userName = loginData.userName;
+            _authentication.useRefreshTokens = loginData.useRefreshTokens;
+
+            $rootScope.user = response;
+
+            deferred.resolve(response);
+
+        }).error(function(err, status) {
+            _logOut();
+            deferred.reject(err);
+        });
+
+        return deferred.promise;
+
+    };
+
+    var _logOut = function() {
+
+        localStorageService.remove('authorizationData');
+
+        _authentication.isAuth = false;
+        _authentication.userName = "";
+        _authentication.useRefreshTokens = false;
+
+    };
+
+    var _fillAuthData = function() {
+
+        var authData = localStorageService.get('authorizationData');
+        if (authData) {
+            _authentication.isAuth = true;
+            _authentication.userName = authData.userName;
+            _authentication.useRefreshTokens = authData.useRefreshTokens;
+            _authentication.userRoles = authData.userRoles;
+        }
+
+    };
+
+    var _refreshToken = function() {
+        var deferred = $q.defer();
+
+        //     var authData = localStorageService.get('authorizationData');
+        // 
+        //     if (authData) {
+        // 
+        //       if (authData.useRefreshTokens) {
+        // 
+        //         var data = "grant_type=refresh_token&refresh_token=" + authData.refreshToken + "&client_id=" + ngAuthSettings.clientId;
+        // 
+        //         localStorageService.remove('authorizationData');
+        // 
+        //         $http.post(serviceBase + 'token', data, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }).success(function (response) {
+        // 
+        //           localStorageService.set('authorizationData', { token: response.access_token, userName: response.userName, refreshToken: response.refresh_token, useRefreshTokens: true });
+        // 
+        //           deferred.resolve(response);
+        // 
+        //         }).error(function (err, status) {
+        //           _logOut();
+        //           deferred.reject(err);
+        //         });
+        //       }
+        //     }
+
+        return deferred.promise;
+    };
+
+    var _obtainAccessToken = function(externalData) {
+
+        var deferred = $q.defer();
+
+        //     $http.get(serviceBase + 'api/account/ObtainLocalAccessToken', { params: { provider: externalData.provider, externalAccessToken: externalData.externalAccessToken } }).success(function (response) {
+        // 
+        //       localStorageService.set('authorizationData', { token: response.access_token, userName: response.userName, refreshToken: "", useRefreshTokens: false });
+        // 
+        //       _authentication.isAuth = true;
+        //       _authentication.userName = response.userName;
+        //       _authentication.useRefreshTokens = false;
+        // 
+        //       deferred.resolve(response);
+        // 
+        //     }).error(function (err, status) {
+        //       _logOut();
+        //       deferred.reject(err);
+        //     });
+
+        return deferred.promise;
+
+    };
+
+    var _registerExternal = function(registerExternalData) {
+
+        var deferred = $q.defer();
+
+        //     $http.post(serviceBase + 'api/account/registerexternal', registerExternalData).success(function (response) {
+        // 
+        //       localStorageService.set('authorizationData', { token: response.access_token, userName: response.userName, refreshToken: "", useRefreshTokens: false });
+        // 
+        //       _authentication.isAuth = true;
+        //       _authentication.userName = response.userName;
+        //       _authentication.useRefreshTokens = false;
+        // 
+        //       $rootScope.userRoles = response.userRoles;
+        // 
+        //       deferred.resolve(response);
+        // 
+        //     }).error(function (err, status) {
+        //       _logOut();
+        //       deferred.reject(err);
+        //     });
+
+        return deferred.promise;
+
+    };
+
+    //authServiceFactory.saveRegistration = _saveRegistration;
+    authServiceFactory.login = _login;
+    authServiceFactory.logOut = _logOut;
+    authServiceFactory.fillAuthData = _fillAuthData;
+    authServiceFactory.authentication = _authentication;
+    authServiceFactory.refreshToken = _refreshToken;
+
+    authServiceFactory.obtainAccessToken = _obtainAccessToken;
+    authServiceFactory.externalAuthData = _externalAuthData;
+    authServiceFactory.registerExternal = _registerExternal;
+
+    return authServiceFactory;
+}]);
+;/**
  * An Angular module that gives you access to the browsers local storage
  * @version v0.2.1 - 2015-05-18
  * @link https://github.com/grevory/angular-local-storage
  * @author grevory <greg@gregpike.ca>
  * @license MIT License, http://www.opensource.org/licenses/MIT
  */
-(function (window, angular, undefined) {
+(function(window, angular, undefined) {
     /*jshint globalstrict:true*/
     //'use strict';
 
     var isDefined = angular.isDefined,
-      isUndefined = angular.isUndefined,
-      isNumber = angular.isNumber,
-      isObject = angular.isObject,
-      isArray = angular.isArray,
-      extend = angular.extend,
-      toJson = angular.toJson;
+        isUndefined = angular.isUndefined,
+        isNumber = angular.isNumber,
+        isObject = angular.isObject,
+        isArray = angular.isArray,
+        extend = angular.extend,
+        toJson = angular.toJson;
     var angularLocalStorage = angular.module('LocalStorageModule', []);
 
-    angularLocalStorage.provider('localStorageService', function () {
+    angularLocalStorage.provider('localStorageService', function() {
 
         // You should set a prefix to avoid overwriting any local storage variables from the rest of your app
         // e.g. localStorageServiceProvider.setPrefix('yourAppName');
@@ -287,33 +301,33 @@ var app = angular.module('cah', [
         };
 
         // Setter for the prefix
-        this.setPrefix = function (prefix) {
+        this.setPrefix = function(prefix) {
             this.prefix = prefix;
             return this;
         };
 
         // Setter for the storageType
-        this.setStorageType = function (storageType) {
+        this.setStorageType = function(storageType) {
             this.storageType = storageType;
             return this;
         };
 
         // Setter for cookie config
-        this.setStorageCookie = function (exp, path) {
+        this.setStorageCookie = function(exp, path) {
             this.cookie.expiry = exp;
             this.cookie.path = path;
             return this;
         };
 
         // Setter for cookie domain
-        this.setStorageCookieDomain = function (domain) {
+        this.setStorageCookieDomain = function(domain) {
             this.cookie.domain = domain;
             return this;
         };
 
         // Setter for notification config
         // itemSet & itemRemove should be booleans
-        this.setNotify = function (itemSet, itemRemove) {
+        this.setNotify = function(itemSet, itemRemove) {
             this.notify = {
                 setItem: itemSet,
                 removeItem: itemRemove
@@ -321,7 +335,7 @@ var app = angular.module('cah', [
             return this;
         };
 
-        this.$get = ['$rootScope', '$window', '$document', '$parse', function ($rootScope, $window, $document, $parse) {
+        this.$get = ['$rootScope', '$window', '$document', '$parse', function($rootScope, $window, $document, $parse) {
             var self = this;
             var prefix = self.prefix;
             var cookie = self.cookie;
@@ -340,11 +354,11 @@ var app = angular.module('cah', [
             if (prefix.substr(-1) !== '.') {
                 prefix = !!prefix ? prefix + '.' : '';
             }
-            var deriveQualifiedKey = function (key) {
+            var deriveQualifiedKey = function(key) {
                 return prefix + key;
             };
             // Checks the browser to see if local storage is supported
-            var browserSupportsLocalStorage = (function () {
+            var browserSupportsLocalStorage = (function() {
                 try {
                     var supported = (storageType in $window && $window[storageType] !== null);
 
@@ -371,7 +385,7 @@ var app = angular.module('cah', [
             // Directly adds a value to local storage
             // If local storage is not available in the browser use cookies
             // Example use: localStorageService.add('library','angular');
-            var addToLocalStorage = function (key, value) {
+            var addToLocalStorage = function(key, value) {
                 // Let's convert undefined values to null to get the value consistent
                 if (isUndefined(value)) {
                     value = null;
@@ -386,15 +400,25 @@ var app = angular.module('cah', [
                     }
 
                     if (notify.setItem) {
-                        $rootScope.$broadcast('LocalStorageModule.notification.setitem', { key: key, newvalue: value, storageType: 'cookie' });
+                        $rootScope.$broadcast('LocalStorageModule.notification.setitem', {
+                            key: key,
+                            newvalue: value,
+                            storageType: 'cookie'
+                        });
                     }
                     return addToCookies(key, value);
                 }
 
                 try {
-                    if (webStorage) { webStorage.setItem(deriveQualifiedKey(key), value) };
+                    if (webStorage) {
+                        webStorage.setItem(deriveQualifiedKey(key), value)
+                    };
                     if (notify.setItem) {
-                        $rootScope.$broadcast('LocalStorageModule.notification.setitem', { key: key, newvalue: value, storageType: self.storageType });
+                        $rootScope.$broadcast('LocalStorageModule.notification.setitem', {
+                            key: key,
+                            newvalue: value,
+                            storageType: self.storageType
+                        });
                     }
                 } catch (e) {
                     $rootScope.$broadcast('LocalStorageModule.notification.error', e.message);
@@ -405,7 +429,7 @@ var app = angular.module('cah', [
 
             // Directly get a value from local storage
             // Example use: localStorageService.get('library'); // returns 'angular'
-            var getFromLocalStorage = function (key) {
+            var getFromLocalStorage = function(key) {
 
                 if (!browserSupportsLocalStorage || self.storageType === 'cookie') {
                     if (!browserSupportsLocalStorage) {
@@ -427,7 +451,7 @@ var app = angular.module('cah', [
 
             // Remove an item from local storage
             // Example use: localStorageService.remove('library'); // removes the key/value pair of library='angular'
-            var removeFromLocalStorage = function () {
+            var removeFromLocalStorage = function() {
                 var i, key;
                 for (i = 0; i < arguments.length; i++) {
                     key = arguments[i];
@@ -437,11 +461,13 @@ var app = angular.module('cah', [
                         }
 
                         if (notify.removeItem) {
-                            $rootScope.$broadcast('LocalStorageModule.notification.removeitem', { key: key, storageType: 'cookie' });
+                            $rootScope.$broadcast('LocalStorageModule.notification.removeitem', {
+                                key: key,
+                                storageType: 'cookie'
+                            });
                         }
                         removeFromCookies(key);
-                    }
-                    else {
+                    } else {
                         try {
                             webStorage.removeItem(deriveQualifiedKey(key));
                             if (notify.removeItem) {
@@ -460,7 +486,7 @@ var app = angular.module('cah', [
 
             // Return array of keys for local storage
             // Example use: var keys = localStorageService.keys()
-            var getKeysForLocalStorage = function () {
+            var getKeysForLocalStorage = function() {
 
                 if (!browserSupportsLocalStorage) {
                     $rootScope.$broadcast('LocalStorageModule.notification.warning', 'LOCAL_STORAGE_NOT_SUPPORTED');
@@ -487,7 +513,7 @@ var app = angular.module('cah', [
             // Also optionally takes a regular expression string and removes the matching key-value pairs
             // Example use: localStorageService.clearAll();
             // Should be used mostly for development purposes
-            var clearAllFromLocalStorage = function (regularExpression) {
+            var clearAllFromLocalStorage = function(regularExpression) {
 
                 // Setting both regular expressions independently
                 // Empty strings result in catchall RegExp
@@ -518,11 +544,11 @@ var app = angular.module('cah', [
             };
 
             // Checks the browser to see if cookies are supported
-            var browserSupportsCookies = (function () {
+            var browserSupportsCookies = (function() {
                 try {
                     return $window.navigator.cookieEnabled ||
-                      ("cookie" in $document && ($document.cookie.length > 0 ||
-                      ($document.cookie = "test").indexOf.call($document.cookie, "test") > -1));
+                        ("cookie" in $document && ($document.cookie.length > 0 ||
+                            ($document.cookie = "test").indexOf.call($document.cookie, "test") > -1));
                 } catch (e) {
                     $rootScope.$broadcast('LocalStorageModule.notification.error', e.message);
                     return false;
@@ -532,7 +558,7 @@ var app = angular.module('cah', [
             // Directly adds a value to cookies
             // Typically used as a fallback is local storage is not available in the browser
             // Example use: localStorageService.cookie.add('library','angular');
-            var addToCookies = function (key, value, daysToExpiry) {
+            var addToCookies = function(key, value, daysToExpiry) {
 
                 if (isUndefined(value)) {
                     return false;
@@ -578,7 +604,7 @@ var app = angular.module('cah', [
 
             // Directly get a value from a cookie
             // Example use: localStorageService.cookie.get('library'); // returns 'angular'
-            var getFromCookies = function (key) {
+            var getFromCookies = function(key) {
                 if (!browserSupportsCookies) {
                     $rootScope.$broadcast('LocalStorageModule.notification.error', 'COOKIES_NOT_SUPPORTED');
                     return false;
@@ -602,12 +628,13 @@ var app = angular.module('cah', [
                 return null;
             };
 
-            var removeFromCookies = function (key) {
+            var removeFromCookies = function(key) {
                 addToCookies(key, null);
             };
 
-            var clearAllFromCookies = function () {
-                var thisCookie = null, thisKey = null;
+            var clearAllFromCookies = function() {
+                var thisCookie = null,
+                    thisKey = null;
                 var prefixLength = prefix.length;
                 var cookies = $document.cookie.split(';');
                 for (var i = 0; i < cookies.length; i++) {
@@ -622,13 +649,13 @@ var app = angular.module('cah', [
                 }
             };
 
-            var getStorageType = function () {
+            var getStorageType = function() {
                 return storageType;
             };
 
             // Add a listener on scope variable to save its changes to local storage
             // Return a function which when called cancels binding
-            var bindToScope = function (scope, key, def, lsKey) {
+            var bindToScope = function(scope, key, def, lsKey) {
                 lsKey = lsKey || key;
                 var value = getFromLocalStorage(lsKey);
 
@@ -640,14 +667,14 @@ var app = angular.module('cah', [
 
                 $parse(key).assign(scope, value);
 
-                return scope.$watch(key, function (newVal) {
+                return scope.$watch(key, function(newVal) {
                     addToLocalStorage(lsKey, newVal);
                 }, isObject(scope[key]));
             };
 
             // Return localStorageService.length
             // ignore keys that not owned
-            var lengthOfLocalStorage = function () {
+            var lengthOfLocalStorage = function() {
                 var count = 0;
                 var storage = $window[storageType];
                 for (var i = 0; i < storage.length; i++) {
@@ -682,20 +709,23 @@ var app = angular.module('cah', [
         }];
     });
 })(window, window.angular);
-;app.factory('test', ['$http', '$q', function($http, $q){
-	return{
-		needAuth: function() {
-			var defer = $q.defer();
+;app.factory('test', ['$http', '$q', function($http, $q) {
+    return {
+        needAuth: function() {
+            var defer = $q.defer();
 
-			$http({ method: 'GET', url: 'api/v1/test' })
-			.success(function (data, status, headers, config) {
-				defer.resolve(data);
-			})
-			.error(function (data, status, headers, config) {
-				defer.reject(data);
-			});
-		
-			return defer.promise;
-		}
-	};
+            $http({
+                    method: 'GET',
+                    url: 'api/test'
+                })
+                .success(function(data, status, headers, config) {
+                    defer.resolve(data);
+                })
+                .error(function(data, status, headers, config) {
+                    defer.reject(data);
+                });
+
+            return defer.promise;
+        }
+    };
 }]);

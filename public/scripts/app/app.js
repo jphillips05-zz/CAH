@@ -1,12 +1,12 @@
 var app = angular.module('cah', [
-	'ngRoute',
-	'LocalStorageModule'
+    'ngRoute',
+    'LocalStorageModule'
 ])
 
-.config(['$httpProvider', function ($httpProvider) {
+.config(['$httpProvider', function($httpProvider) {
     $httpProvider.interceptors.push('authInterceptorService');
 }])
 
-.run(['authService', function (authService) {
-	authService.fillAuthData();
+.run(['authService', function(authService) {
+    authService.fillAuthData();
 }]);
